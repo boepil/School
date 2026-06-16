@@ -427,22 +427,33 @@
             // Event Delegation for Buttons
             contentDiv.addEventListener('click', (e) => {
                 if (e.target.classList.contains('btn')) {
-                    const img = e.target.dataset.img;
-                    const action = e.target.dataset.action;
-                    const safeId = safeKey(img);
-                    
-                    // Toggle logic
-                    let newStatus = action;
-                    if (dbState[safeId] && dbState[safeId][reviewerName] === action) {
-                        newStatus = null; // unset if clicking the same active button
-                    }
+                    try {
+                        const img = e.target.dataset.img;
+                        const action = e.target.dataset.action;
+                        const safeId = safeKey(img);
+                        const safeReviewer = safeKey(reviewerName);
+                        
+                        // Toggle logic
+                        let newStatus = action;
+                        if (dbState[safeId] && dbState[safeId][safeReviewer] === action) {
+                            newStatus = null; // unset if clicking the same active button
+                        }
 
-                    // Update Firebase
-                    set(ref(db, `reviews/${safeId}/${reviewerName}`), newStatus)
-                        .catch(err => {
-                            console.error(err);
-                            alert("Failed to save: " + err.message + "\n\n1. Check your Firebase Database Rules (they must be true).\n2. If your database is not in the US, you must add 'databaseURL' to the firebaseConfig.");
-                        });
+                        // Optimistic UI Update
+                        if (!dbState[safeId]) dbState[safeId] = {};
+                        dbState[safeId][safeReviewer] = newStatus;
+                        updateUIWithState();
+                        updateSummary();
+
+                        // Update Firebase
+                        set(ref(db, `reviews/${safeId}/${safeReviewer}`), newStatus)
+                            .catch(err => {
+                                console.error(err);
+                                alert("Failed to save: " + err.message + "\n\n1. Check your Firebase Database Rules (they must be true).\n2. If your database is not in the US, you must add 'databaseURL' to the firebaseConfig.");
+                            });
+                    } catch (err) {
+                        alert("JavaScript Error: " + err.message);
+                    }
                 }
                 
                 if (e.target.classList.contains('zoomable')) {
@@ -482,9 +493,11 @@
 
                 const imgState = dbState[safeId] || {};
                 
+                const safeReviewer = safeKey(reviewerName);
+                
                 // My state
-                if (imgState[reviewerName] === 'approved') approveBtn.classList.add('active-approve');
-                if (imgState[reviewerName] === 'rejected') rejectBtn.classList.add('active-reject');
+                if (imgState[safeReviewer] === 'approved') approveBtn.classList.add('active-approve');
+                if (imgState[safeReviewer] === 'rejected') rejectBtn.classList.add('active-reject');
 
                 // Aggregate stats
                 for (const [user, status] of Object.entries(imgState)) {
