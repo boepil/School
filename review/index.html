@@ -314,9 +314,6 @@
     <div class="summary-panel" id="summaryPanel">
         <h3>Review Summary</h3>
         <div id="summaryContent"></div>
-        <div style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 20px;">
-            <button id="resetAllDbBtn" class="btn" style="background: rgba(239, 68, 68, 0.15); border-color: var(--danger); color: var(--danger); width: 100%; padding: 10px 0; font-weight: 600;">Reset All Reviews</button>
-        </div>
     </div>
     
     <div class="modal" id="imageModal">
@@ -352,7 +349,6 @@
         const contentDiv = document.getElementById('content');
         const summaryContent = document.getElementById('summaryContent');
         const doneBtn = document.getElementById('doneReviewingBtn');
-        const resetAllDbBtn = document.getElementById('resetAllDbBtn');
         
         // Modal logic
         const modal = document.getElementById('imageModal');
@@ -380,20 +376,6 @@
             mainContainer.style.display = 'block';
             document.getElementById('userInfoSection').style.display = 'block';
             document.getElementById('currentReviewerName').textContent = reviewerName;
-
-            // Setup Database Reset
-            resetAllDbBtn.addEventListener('click', () => {
-                if (confirm("WARNING: This will permanently delete ALL approvals, rejections, and reviewer statuses from the database for everyone. Are you sure you want to reset everything?")) {
-                    set(ref(db, '/'), null)
-                        .then(() => {
-                            alert("Database successfully reset!");
-                            location.reload();
-                        })
-                        .catch(err => {
-                            alert("Error resetting database: " + err.message);
-                        });
-                }
-            });
 
             try {
                 // Cache-busting manifest
