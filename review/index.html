@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Review</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: rgba(30, 41, 59, 0.7);
+            --border: rgba(255, 255, 255, 0.1);
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --glass-blur: blur(12px);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .name-prompt {
+            background: var(--surface);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 400px;
+            margin: 0 auto 40px;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .name-prompt input {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 12px 16px;
+            border-radius: 8px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 16px;
+            font-size: 16px;
+        }
+
+        .name-prompt button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            width: 100%;
+        }
+
+        .name-prompt button:hover {
+            background: #2563eb;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: none; /* hidden until name is set */
+        }
+
+        .person-group {
+            margin-bottom: 60px;
+        }
+
+        .person-group h2 {
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--surface);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+        }
+
+        .img-container {
+            aspect-ratio: 4/3;
+            overflow: hidden;
+            background: rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        
+        .card img:hover {
+            transform: scale(1.05);
+        }
+
+        .card-content {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex-grow: 1;
+        }
+
+        .filename {
+            font-size: 14px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: auto;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 8px 0;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text);
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn.approve:hover { background: rgba(16, 185, 129, 0.2); border-color: var(--success); }
+        .btn.reject:hover { background: rgba(239, 68, 68, 0.2); border-color: var(--danger); }
+        
+        .btn.active-approve { background: var(--success); border-color: var(--success); color: white; }
+        .btn.active-reject { background: var(--danger); border-color: var(--danger); color: white; }
+
+        .stats {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Summary View */
+        .summary-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            z-index: 100;
+        }
+
+        .summary-panel {
+            position: fixed;
+            top: 0; right: 0; bottom: 0;
+            width: 400px;
+            max-width: 100%;
+            background: #1e293bf2;
+            backdrop-filter: var(--glass-blur);
+            border-left: 1px solid var(--border);
+            padding: 24px;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 99;
+            overflow-y: auto;
+            box-shadow: -4px 0 15px rgba(0,0,0,0.5);
+        }
+
+        .summary-panel.open {
+            transform: translateX(0);
+        }
+
+        .summary-panel h3 {
+            margin-top: 0;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 14px;
+        }
+        
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+
+        .summary-img-name {
+            width: 50%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .summary-counts span {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 6px;
+        }
+        .count-appr { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+        .count-rej { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+        
+        /* Modal for full image */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+        .modal.active { display: flex; }
+        .modal img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Image Review</h1>
+    </header>
+
+    <div class="name-prompt" id="namePrompt">
+        <h2>Welcome</h2>
+        <p style="color: var(--text-muted); margin-bottom: 24px;">Please enter your name to start reviewing.</p>
+        <input type="text" id="reviewerNameInput" placeholder="Your Name" />
+        <button id="startBtn">Start Reviewing</button>
+    </div>
+
+    <div class="container" id="mainContainer">
+        <div id="content"></div>
+    </div>
+
+    <button class="summary-toggle" id="summaryToggle">Show Summary</button>
+    <div class="summary-panel" id="summaryPanel">
+        <h3>Review Summary</h3>
+        <div id="summaryContent"></div>
+    </div>
+    
+    <div class="modal" id="imageModal">
+        <button class="modal-close" id="modalClose">&times;</button>
+        <img id="modalImg" src="" alt="Full size view">
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        // Firebase Configuration (from user)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBN9CGEGBHueRcEB8zxJP0MLXxmZHd-SCM",
+            authDomain: "school-6576b.firebaseapp.com",
+            projectId: "school-6576b",
+            storageBucket: "school-6576b.firebasestorage.app",
+            messagingSenderId: "1000427173467",
+            appId: "1:1000427173467:web:b8398a3b5993e5d8ab717e",
+            databaseURL: "https://school-6576b-default-rtdb.firebaseio.com" // Usually derived automatically, but explicit is safer
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let reviewerName = localStorage.getItem('reviewerName') || '';
+        let manifestData = {};
+        let dbState = {}; 
+
+        const namePrompt = document.getElementById('namePrompt');
+        const mainContainer = document.getElementById('mainContainer');
+        const contentDiv = document.getElementById('content');
+        const summaryContent = document.getElementById('summaryContent');
+        
+        // Modal logic
+        const modal = document.getElementById('imageModal');
+        const modalImg = document.getElementById('modalImg');
+        document.getElementById('modalClose').addEventListener('click', () => modal.classList.remove('active'));
+        modal.addEventListener('click', (e) => {
+            if(e.target === modal) modal.classList.remove('active');
+        });
+
+        if (reviewerName) {
+            startApp();
+        } else {
+            document.getElementById('startBtn').addEventListener('click', () => {
+                const name = document.getElementById('reviewerNameInput').value.trim();
+                if (name) {
+                    reviewerName = name;
+                    localStorage.setItem('reviewerName', reviewerName);
+                    startApp();
+                }
+            });
+        }
+
+        async function startApp() {
+            namePrompt.style.display = 'none';
+            mainContainer.style.display = 'block';
+
+            try {
+                const res = await fetch('manifest.json');
+                if(!res.ok) throw new Error("manifest.json not found");
+                manifestData = await res.json();
+                renderUI();
+                listenToFirebase();
+            } catch (e) {
+                contentDiv.innerHTML = \`<p style="color: var(--danger)">Error loading manifest.json. Ensure you have run the python script and are serving via a local web server (e.g. python -m http.server).</p>\`;
+            }
+        }
+
+        function safeKey(filename) {
+            return filename.replace(/[\\.\\#\\$\\[\\]]/g, '_');
+        }
+
+        function renderUI() {
+            contentDiv.innerHTML = '';
+            
+            // Generate content based on manifest
+            for (const [person, images] of Object.entries(manifestData)) {
+                const section = document.createElement('div');
+                section.className = 'person-group';
+                
+                const heading = document.createElement('h2');
+                heading.textContent = person;
+                section.appendChild(heading);
+
+                const grid = document.createElement('div');
+                grid.className = 'grid';
+
+                images.forEach(img => {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.dataset.img = img;
+                    
+                    const safeId = safeKey(img);
+
+                    card.innerHTML = \`
+                        <div class="img-container">
+                            <img src="images/\${img}" alt="\${img}" loading="lazy" class="zoomable" data-src="images/\${img}">
+                        </div>
+                        <div class="card-content">
+                            <div class="filename" title="\${img}">\${img}</div>
+                            <div class="actions">
+                                <button class="btn approve" data-img="\${img}" data-action="approved">Approve</button>
+                                <button class="btn reject" data-img="\${img}" data-action="rejected">Reject</button>
+                            </div>
+                            <div class="stats" id="stats-\${safeId}">
+                                <span>A: 0</span>
+                                <span>R: 0</span>
+                            </div>
+                        </div>
+                    \`;
+                    grid.appendChild(card);
+                });
+
+                section.appendChild(grid);
+                contentDiv.appendChild(section);
+            }
+
+            // Event Delegation for Buttons
+            contentDiv.addEventListener('click', (e) => {
+                if (e.target.classList.contains('btn')) {
+                    const img = e.target.dataset.img;
+                    const action = e.target.dataset.action;
+                    const safeId = safeKey(img);
+                    
+                    // Toggle logic
+                    let newStatus = action;
+                    if (dbState[safeId] && dbState[safeId][reviewerName] === action) {
+                        newStatus = null; // unset if clicking the same active button
+                    }
+
+                    // Update Firebase
+                    set(ref(db, \`reviews/\${safeId}/\${reviewerName}\`), newStatus);
+                }
+                
+                if (e.target.classList.contains('zoomable')) {
+                    modalImg.src = e.target.dataset.src;
+                    modal.classList.add('active');
+                }
+            });
+        }
+
+        function listenToFirebase() {
+            const reviewsRef = ref(db, 'reviews');
+            onValue(reviewsRef, (snapshot) => {
+                dbState = snapshot.val() || {};
+                updateUIWithState();
+                updateSummary();
+            });
+        }
+
+        function updateUIWithState() {
+            // Update buttons and individual card stats
+            document.querySelectorAll('.card').forEach(card => {
+                const img = card.dataset.img;
+                const safeId = safeKey(img);
+                
+                const approveBtn = card.querySelector('.btn.approve');
+                const rejectBtn = card.querySelector('.btn.reject');
+                const statsDiv = document.getElementById(\`stats-\${safeId}\`);
+
+                approveBtn.classList.remove('active-approve');
+                rejectBtn.classList.remove('active-reject');
+
+                let approves = 0;
+                let rejects = 0;
+
+                const imgState = dbState[safeId] || {};
+                
+                // My state
+                if (imgState[reviewerName] === 'approved') approveBtn.classList.add('active-approve');
+                if (imgState[reviewerName] === 'rejected') rejectBtn.classList.add('active-reject');
+
+                // Aggregate stats
+                for (const [user, status] of Object.entries(imgState)) {
+                    if (status === 'approved') approves++;
+                    if (status === 'rejected') rejects++;
+                }
+
+                statsDiv.innerHTML = \`
+                    <span style="color: \${approves > 0 ? 'var(--success)' : 'inherit'}">A: \${approves}</span>
+                    <span style="color: \${rejects > 0 ? 'var(--danger)' : 'inherit'}">R: \${rejects}</span>
+                \`;
+            });
+        }
+
+        function updateSummary() {
+            // Aggregate globally for the summary panel
+            summaryContent.innerHTML = '';
+            
+            // Get unique images from manifest to iterate
+            const allImages = new Set();
+            for(const images of Object.values(manifestData)) {
+                images.forEach(img => allImages.add(img));
+            }
+            
+            const sortedImages = Array.from(allImages).sort();
+
+            sortedImages.forEach(img => {
+                const safeId = safeKey(img);
+                const imgState = dbState[safeId] || {};
+                
+                let approves = 0;
+                let rejects = 0;
+                for (const status of Object.values(imgState)) {
+                    if (status === 'approved') approves++;
+                    if (status === 'rejected') rejects++;
+                }
+
+                if (approves > 0 || rejects > 0) {
+                    const item = document.createElement('div');
+                    item.className = 'summary-item';
+                    item.innerHTML = \`
+                        <div class="summary-img-name" title="\${img}">\${img}</div>
+                        <div class="summary-counts">
+                            \${approves > 0 ? \`<span class="count-appr">\${approves} ✓</span>\` : ''}
+                            \${rejects > 0 ? \`<span class="count-rej">\${rejects} ✗</span>\` : ''}
+                        </div>
+                    \`;
+                    summaryContent.appendChild(item);
+                }
+            });
+            
+            if(summaryContent.children.length === 0) {
+                summaryContent.innerHTML = '<p style="color: var(--text-muted); font-size: 14px;">No reviews yet.</p>';
+            }
+        }
+
+        // Summary Toggle
+        const summaryToggle = document.getElementById('summaryToggle');
+        const summaryPanel = document.getElementById('summaryPanel');
+        summaryToggle.addEventListener('click', () => {
+            summaryPanel.classList.toggle('open');
+            if(summaryPanel.classList.contains('open')) {
+                summaryToggle.textContent = 'Hide Summary';
+            } else {
+                summaryToggle.textContent = 'Show Summary';
+            }
+        });
+    </script>
+</body>
+</html>

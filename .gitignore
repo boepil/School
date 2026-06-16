@@ -1,0 +1,6 @@
+/All/
+/Movies/
+/temp/
+__pycache__/
+*.pyc
+.DS_Store
