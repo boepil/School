@@ -291,7 +291,8 @@
         <div id="userInfoSection" style="display:none; margin-top: 15px; background: var(--surface); border: 1px solid var(--border); padding: 15px; border-radius: 12px; max-width: 600px; margin-left: auto; margin-right: auto; text-align: center;">
             <div style="font-size: 16px; margin-bottom: 10px; display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap;">
                 <span>Reviewing as: <strong id="currentReviewerName" style="color: var(--accent);"></strong></span>
-                <button id="doneReviewingBtn" class="btn" style="display:inline-block; width:auto; padding: 6px 16px; margin: 0; background: rgba(255,255,255,0.1); border-color: var(--border);">Declare Done Reviewing</button>
+                <button id="signOutBtn" class="btn" style="display:inline-block; width:auto; padding: 4px 12px; margin: 0; background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: var(--danger); font-size: 13px;">Change Name</button>
+                <button id="doneReviewingBtn" class="btn" style="display:inline-block; width:auto; padding: 6px 16px; margin: 0 0 0 10px; background: rgba(255,255,255,0.1); border-color: var(--border);">Declare Done Reviewing</button>
             </div>
             <div style="font-size: 14px; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; margin-top: 10px;">
                 Reviewers Status: <span id="allReviewersStatusList">-</span>
@@ -314,6 +315,9 @@
     <div class="summary-panel" id="summaryPanel">
         <h3>Review Summary</h3>
         <div id="summaryContent"></div>
+        <div style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 20px;">
+            <button id="resetAllDbBtn" class="btn" style="background: rgba(239, 68, 68, 0.15); border-color: var(--danger); color: var(--danger); width: 100%; padding: 10px 0; font-weight: 600;">Reset All Reviews</button>
+        </div>
     </div>
     
     <div class="modal" id="imageModal">
@@ -349,6 +353,8 @@
         const contentDiv = document.getElementById('content');
         const summaryContent = document.getElementById('summaryContent');
         const doneBtn = document.getElementById('doneReviewingBtn');
+        const signOutBtn = document.getElementById('signOutBtn');
+        const resetAllDbBtn = document.getElementById('resetAllDbBtn');
         
         // Modal logic
         const modal = document.getElementById('imageModal');
@@ -377,8 +383,29 @@
             document.getElementById('userInfoSection').style.display = 'block';
             document.getElementById('currentReviewerName').textContent = reviewerName;
 
+            // Setup Sign Out
+            signOutBtn.addEventListener('click', () => {
+                localStorage.removeItem('reviewerName');
+                location.reload();
+            });
+
+            // Setup Database Reset
+            resetAllDbBtn.addEventListener('click', () => {
+                if (confirm("WARNING: This will permanently delete ALL approvals, rejections, and reviewer statuses from the database for everyone. Are you sure you want to reset everything?")) {
+                    set(ref(db, '/'), null)
+                        .then(() => {
+                            alert("Database successfully reset!");
+                            location.reload();
+                        })
+                        .catch(err => {
+                            alert("Error resetting database: " + err.message);
+                        });
+                }
+            });
+
             try {
-                const res = await fetch('manifest.json');
+                // Cache-busting manifest
+                const res = await fetch('manifest.json?v=' + Date.now());
                 if(!res.ok) throw new Error("manifest.json not found");
                 manifestData = await res.json();
                 renderUI();
@@ -397,15 +424,19 @@
         function renderUI() {
             contentDiv.innerHTML = '';
             
+            // Sort keywords (people names) alphabetically
+            const sortedPeople = Object.keys(manifestData).sort();
+            
             // Generate content based on manifest
-            for (const [person, images] of Object.entries(manifestData)) {
+            sortedPeople.forEach(person => {
+                const images = manifestData[person];
                 const section = document.createElement('div');
                 section.className = 'person-group';
                 
                 const heading = document.createElement('h2');
                 heading.textContent = person;
                 section.appendChild(heading);
-
+ 
                 const grid = document.createElement('div');
                 grid.className = 'grid';
 
@@ -418,7 +449,7 @@
 
                     card.innerHTML = `
                         <div class="img-container">
-                            <img src="images/${img}" alt="${img}" loading="lazy" class="zoomable" data-src="images/${img}">
+                            <img src="images/${img}?v=2" alt="${img}" loading="lazy" class="zoomable" data-src="images/${img}?v=2">
                         </div>
                         <div class="card-content">
                             <div class="filename" title="${img}">${img}</div>
