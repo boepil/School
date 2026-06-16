@@ -324,7 +324,7 @@
             storageBucket: "school-6576b.firebasestorage.app",
             messagingSenderId: "1000427173467",
             appId: "1:1000427173467:web:b8398a3b5993e5d8ab717e",
-            databaseURL: "https://school-6576b-default-rtdb.firebaseio.com" // Usually derived automatically, but explicit is safer
+            databaseURL: "https://school-6576b-default-rtdb.firebaseio.com"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -371,12 +371,12 @@
                 renderUI();
                 listenToFirebase();
             } catch (e) {
-                contentDiv.innerHTML = \`<p style="color: var(--danger)">Error loading manifest.json. Ensure you have run the python script and are serving via a local web server (e.g. python -m http.server).</p>\`;
+                contentDiv.innerHTML = `<p style="color: var(--danger)">Error loading manifest.json. Ensure you have run the python script and are serving via a local web server (e.g. python -m http.server).</p>`;
             }
         }
 
         function safeKey(filename) {
-            return filename.replace(/[\\.\\#\\$\\[\\]]/g, '_');
+            return filename.replace(/[\.\#\$\[\]]/g, '_');
         }
 
         function renderUI() {
@@ -401,22 +401,22 @@
                     
                     const safeId = safeKey(img);
 
-                    card.innerHTML = \`
+                    card.innerHTML = `
                         <div class="img-container">
-                            <img src="images/\${img}" alt="\${img}" loading="lazy" class="zoomable" data-src="images/\${img}">
+                            <img src="images/${img}" alt="${img}" loading="lazy" class="zoomable" data-src="images/${img}">
                         </div>
                         <div class="card-content">
-                            <div class="filename" title="\${img}">\${img}</div>
+                            <div class="filename" title="${img}">${img}</div>
                             <div class="actions">
-                                <button class="btn approve" data-img="\${img}" data-action="approved">Approve</button>
-                                <button class="btn reject" data-img="\${img}" data-action="rejected">Reject</button>
+                                <button class="btn approve" data-img="${img}" data-action="approved">Approve</button>
+                                <button class="btn reject" data-img="${img}" data-action="rejected">Reject</button>
                             </div>
-                            <div class="stats" id="stats-\${safeId}">
+                            <div class="stats" id="stats-${safeId}">
                                 <span>A: 0</span>
                                 <span>R: 0</span>
                             </div>
                         </div>
-                    \`;
+                    `;
                     grid.appendChild(card);
                 });
 
@@ -438,7 +438,7 @@
                     }
 
                     // Update Firebase
-                    set(ref(db, \`reviews/\${safeId}/\${reviewerName}\`), newStatus);
+                    set(ref(db, `reviews/${safeId}/${reviewerName}`), newStatus);
                 }
                 
                 if (e.target.classList.contains('zoomable')) {
@@ -465,7 +465,7 @@
                 
                 const approveBtn = card.querySelector('.btn.approve');
                 const rejectBtn = card.querySelector('.btn.reject');
-                const statsDiv = document.getElementById(\`stats-\${safeId}\`);
+                const statsDiv = document.getElementById(`stats-${safeId}`);
 
                 approveBtn.classList.remove('active-approve');
                 rejectBtn.classList.remove('active-reject');
@@ -485,10 +485,10 @@
                     if (status === 'rejected') rejects++;
                 }
 
-                statsDiv.innerHTML = \`
-                    <span style="color: \${approves > 0 ? 'var(--success)' : 'inherit'}">A: \${approves}</span>
-                    <span style="color: \${rejects > 0 ? 'var(--danger)' : 'inherit'}">R: \${rejects}</span>
-                \`;
+                statsDiv.innerHTML = `
+                    <span style="color: ${approves > 0 ? 'var(--success)' : 'inherit'}">A: ${approves}</span>
+                    <span style="color: ${rejects > 0 ? 'var(--danger)' : 'inherit'}">R: ${rejects}</span>
+                `;
             });
         }
 
@@ -518,13 +518,13 @@
                 if (approves > 0 || rejects > 0) {
                     const item = document.createElement('div');
                     item.className = 'summary-item';
-                    item.innerHTML = \`
-                        <div class="summary-img-name" title="\${img}">\${img}</div>
+                    item.innerHTML = `
+                        <div class="summary-img-name" title="${img}">${img}</div>
                         <div class="summary-counts">
-                            \${approves > 0 ? \`<span class="count-appr">\${approves} ✓</span>\` : ''}
-                            \${rejects > 0 ? \`<span class="count-rej">\${rejects} ✗</span>\` : ''}
+                            ${approves > 0 ? `<span class="count-appr">${approves} ✓</span>` : ''}
+                            ${rejects > 0 ? `<span class="count-rej">${rejects} ✗</span>` : ''}
                         </div>
-                    \`;
+                    `;
                     summaryContent.appendChild(item);
                 }
             });
