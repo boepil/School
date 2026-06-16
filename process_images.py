@@ -11,8 +11,11 @@ MAX_SIZE = 1600
 JPEG_QUALITY = 80
 
 def process_images():
-    if not os.path.exists(TARGET_DIR):
-        os.makedirs(TARGET_DIR)
+    if os.path.exists(TARGET_DIR):
+        import shutil
+        print(f"Cleaning target directory: {TARGET_DIR}")
+        shutil.rmtree(TARGET_DIR)
+    os.makedirs(TARGET_DIR)
 
     manifest = {}
 
@@ -66,8 +69,8 @@ def process_images():
         keywords = list(set(keywords))
         
         if not keywords:
-            print(f"  No keywords found for {filename}. Assigning to 'Untagged'.")
-            keywords = ["Untagged"]
+            print(f"  No keywords found for {filename}. Skipping.")
+            continue
 
         # 2. Resize and Compress Image
         target_path = os.path.join(TARGET_DIR, filename)

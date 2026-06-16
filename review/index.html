@@ -288,6 +288,15 @@
 
     <header>
         <h1>Image Review</h1>
+        <div id="userInfoSection" style="display:none; margin-top: 15px; background: var(--surface); border: 1px solid var(--border); padding: 15px; border-radius: 12px; max-width: 600px; margin-left: auto; margin-right: auto; text-align: center;">
+            <div style="font-size: 16px; margin-bottom: 10px; display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <span>Reviewing as: <strong id="currentReviewerName" style="color: var(--accent);"></strong></span>
+                <button id="doneReviewingBtn" class="btn" style="display:inline-block; width:auto; padding: 6px 16px; margin: 0; background: rgba(255,255,255,0.1); border-color: var(--border);">Declare Done Reviewing</button>
+            </div>
+            <div style="font-size: 14px; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; margin-top: 10px;">
+                Reviewers Status: <span id="allReviewersStatusList">-</span>
+            </div>
+        </div>
     </header>
 
     <div class="name-prompt" id="namePrompt">
@@ -333,11 +342,13 @@
         let reviewerName = localStorage.getItem('reviewerName') || '';
         let manifestData = {};
         let dbState = {}; 
+        let statusState = {};
 
         const namePrompt = document.getElementById('namePrompt');
         const mainContainer = document.getElementById('mainContainer');
         const contentDiv = document.getElementById('content');
         const summaryContent = document.getElementById('summaryContent');
+        const doneBtn = document.getElementById('doneReviewingBtn');
         
         // Modal logic
         const modal = document.getElementById('imageModal');
@@ -363,6 +374,8 @@
         async function startApp() {
             namePrompt.style.display = 'none';
             mainContainer.style.display = 'block';
+            document.getElementById('userInfoSection').style.display = 'block';
+            document.getElementById('currentReviewerName').textContent = reviewerName;
 
             try {
                 const res = await fetch('manifest.json');
@@ -370,6 +383,8 @@
                 manifestData = await res.json();
                 renderUI();
                 listenToFirebase();
+                listenToReviewersStatus();
+                setupStatusToggle();
             } catch (e) {
                 contentDiv.innerHTML = `<p style="color: var(--danger)">Error loading manifest.json. Ensure you have run the python script and are serving via a local web server (e.g. python -m http.server).</p>`;
             }
@@ -472,6 +487,60 @@
             }, (error) => {
                 console.error(error);
                 alert("Firebase connection error: " + error.message + "\n\n1. Check your Firebase Rules.\n2. Add the exact 'databaseURL' to firebaseConfig in index.html if your database is regional.");
+            });
+        }
+
+        function setupStatusToggle() {
+            doneBtn.addEventListener('click', () => {
+                const safeReviewer = safeKey(reviewerName);
+                const currentStatus = statusState[safeReviewer] || 'reviewing';
+                const newStatus = currentStatus === 'done' ? 'reviewing' : 'done';
+                
+                set(ref(db, `reviewerStatus/${safeReviewer}`), newStatus)
+                    .catch(err => console.error("Error updating status:", err));
+            });
+        }
+
+        function listenToReviewersStatus() {
+            const statusRef = ref(db, 'reviewerStatus');
+            onValue(statusRef, (snapshot) => {
+                statusState = snapshot.val() || {};
+                
+                const safeReviewer = safeKey(reviewerName);
+                const currentStatus = statusState[safeReviewer] || 'reviewing';
+                
+                if (currentStatus === 'done') {
+                    doneBtn.textContent = 'Done Reviewing ✓';
+                    doneBtn.style.backgroundColor = 'var(--success)';
+                    doneBtn.style.borderColor = 'var(--success)';
+                    doneBtn.style.color = 'white';
+                } else {
+                    doneBtn.textContent = 'Declare Done Reviewing';
+                    doneBtn.style.backgroundColor = 'rgba(255,255,255,0.1)';
+                    doneBtn.style.borderColor = 'var(--border)';
+                    doneBtn.style.color = 'var(--text)';
+                }
+                
+                if (!statusState[safeReviewer]) {
+                    set(ref(db, `reviewerStatus/${safeReviewer}`), 'reviewing');
+                }
+
+                const listSpan = document.getElementById('allReviewersStatusList');
+                const entries = Object.entries(statusState);
+                if (entries.length === 0) {
+                    listSpan.textContent = 'None yet';
+                    return;
+                }
+                
+                const badges = entries.map(([name, status]) => {
+                    const displayName = name.replace(/_/g, ' ');
+                    if (status === 'done') {
+                        return `<span style="background: rgba(16, 185, 129, 0.2); color: var(--success); padding: 4px 10px; border-radius: 12px; font-weight: 600; font-size: 13px; margin: 0 4px; display: inline-block;">${displayName} ✓</span>`;
+                    } else {
+                        return `<span style="background: rgba(255, 255, 255, 0.05); color: var(--text-muted); padding: 4px 10px; border-radius: 12px; font-size: 13px; margin: 0 4px; display: inline-block;">${displayName} ...</span>`;
+                    }
+                });
+                listSpan.innerHTML = badges.join('');
             });
         }
 
