@@ -124,7 +124,7 @@
         .card img {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
             cursor: pointer;
             transition: transform 0.3s;
         }
@@ -438,7 +438,11 @@
                     }
 
                     // Update Firebase
-                    set(ref(db, `reviews/${safeId}/${reviewerName}`), newStatus);
+                    set(ref(db, `reviews/${safeId}/${reviewerName}`), newStatus)
+                        .catch(err => {
+                            console.error(err);
+                            alert("Failed to save: " + err.message + "\n\n1. Check your Firebase Database Rules (they must be true).\n2. If your database is not in the US, you must add 'databaseURL' to the firebaseConfig.");
+                        });
                 }
                 
                 if (e.target.classList.contains('zoomable')) {
@@ -454,6 +458,9 @@
                 dbState = snapshot.val() || {};
                 updateUIWithState();
                 updateSummary();
+            }, (error) => {
+                console.error(error);
+                alert("Firebase connection error: " + error.message + "\n\n1. Check your Firebase Rules.\n2. Add the exact 'databaseURL' to firebaseConfig in index.html if your database is regional.");
             });
         }
 
